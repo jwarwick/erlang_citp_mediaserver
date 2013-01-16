@@ -2,6 +2,8 @@
 -behaviour(gen_server).
 -define(SERVER, ?MODULE).
 
+-define(ANNOUNCE_INTERVAL, 5000). 
+
 %% ------------------------------------------------------------------
 %% API Function Exports
 %% ------------------------------------------------------------------
@@ -29,8 +31,10 @@ say_hello() ->
 %% gen_server Function Definitions
 %% ------------------------------------------------------------------
 
-init(Args) ->
-  {ok, Args}.
+init([]) ->
+  {ok, Socket} = citp_msex:listen(),
+  erlang:send_after(?ANNOUNCE_INTERVAL, ?MODULE, announce),
+  {ok, {Socket}}.
 
 handle_call(hello, _From, State) ->
   io:format("Hello from server!~n", []),
@@ -39,14 +43,37 @@ handle_call(hello, _From, State) ->
 handle_call(_Request, _From, State) ->
   {reply, ok, State}.
 
+
+
 handle_cast(_Msg, State) ->
   {noreply, State}.
+
+
+
+handle_info(announce, State) ->
+  io:format("Should send announce packet~n", []),
+  erlang:send_after(?ANNOUNCE_INTERVAL, ?MODULE, announce),
+  {noreply, State};
+
+handle_info({udp, Socket, IP, _InPortNo, Packet}, State) ->
+  Result = citp_msex:parseHeader(Packet),
+  case Result of
+    {ploc, ListeningPort, Type, Name, CitpState} ->
+      io:format("PINF/PLoc: ~w:~w, ~p, ~p, ~p~n", [IP, ListeningPort, Type, Name, CitpState]);
+    Result ->
+      io:format("Don't know that packet: ~p, ~p~n", [Result, Packet])
+  end,
+  {noreply, State};
 
 handle_info(_Info, State) ->
   {noreply, State}.
 
+
+
 terminate(_Reason, _State) ->
   ok.
+
+
 
 code_change(_OldVsn, State, _Extra) ->
   {ok, State}.
