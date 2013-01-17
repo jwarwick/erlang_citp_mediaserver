@@ -32,9 +32,15 @@ say_hello() ->
 %% ------------------------------------------------------------------
 
 init([]) ->
+  {ok, _} = ranch:start_listener(tcp_msex, 5,
+                                 ranch_tcp, [{port, 0}],
+                                 msex_protocol, []
+                                ),
+  Port = ranch:get_port(tcp_msex),
+  io:format("MSEX TCP Port: ~p~n", [Port]),
   {ok, Socket} = citp_msex:listen(),
   erlang:send_after(?ANNOUNCE_INTERVAL, ?MODULE, announce),
-  {ok, {Socket}}.
+  {ok, {Socket, Port}}.
 
 handle_call(hello, _From, State) ->
   io:format("Hello from server!~n", []),
