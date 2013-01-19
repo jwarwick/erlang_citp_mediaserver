@@ -8,7 +8,7 @@
 %% API Function Exports
 %% ------------------------------------------------------------------
 
--export([start_link/0, say_hello/0]).
+-export([start_link/0]).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Exports
@@ -24,8 +24,6 @@
 start_link() ->
   gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
-say_hello() ->
-  gen_server:call(?MODULE, hello).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Definitions
@@ -39,12 +37,8 @@ init([]) ->
   Port = ranch:get_port(tcp_msex),
   io:format("MSEX TCP Port: ~p~n", [Port]),
   {ok, Socket} = citp_msex:listen(),
-  erlang:send_after(?ANNOUNCE_INTERVAL, ?MODULE, announce),
+  erlang:send_after(0, ?MODULE, announce),
   {ok, {Socket, Port}}.
-
-handle_call(hello, _From, State) ->
-  io:format("Hello from server!~n", []),
-  {reply, ok, State};
 
 handle_call(_Request, _From, State) ->
   {reply, ok, State}.
@@ -56,12 +50,12 @@ handle_cast(_Msg, State) ->
 
 
 
-handle_info(announce, State) ->
-  io:format("Should send announce packet~n", []),
+handle_info(announce, State = {Socket, Port}) ->
+  ok = citp_msex:sendPLoc(Socket, Port, "Erlang MediaServer", "Running"),
   erlang:send_after(?ANNOUNCE_INTERVAL, ?MODULE, announce),
   {noreply, State};
 
-handle_info({udp, Socket, IP, _InPortNo, Packet}, State) ->
+handle_info({udp, _Socket, IP, _InPortNo, Packet}, State) ->
   Result = citp_msex:parseHeader(Packet),
   case Result of
     {ploc, ListeningPort, Type, Name, CitpState} ->
