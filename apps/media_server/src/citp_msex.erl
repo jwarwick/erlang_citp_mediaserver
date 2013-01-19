@@ -7,7 +7,7 @@
 
 
 listen() ->
-  {ok, Socket} = gen_udp:open(?CITP_PORT, [binary, {active, true}, {broadcast, true}, {reuseaddr, true},
+  {ok, Socket} = gen_udp:open(0, [binary, {active, true}, {broadcast, true}, {reuseaddr, true},
       {recbuf, 128000}, {read_packets, 256}, {multicast_loop, true}]),
   {ok, IfList} = inet:getif(),
   IpList = [{Socket, Ip} || {Ip = {A,B,C,D}, _Broadcast, _Subnet} <- IfList, A=/= 127, B=/=0, C=/=0, D=/=1],
