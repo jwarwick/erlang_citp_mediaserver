@@ -11,17 +11,20 @@ start_link(ListenerPid, Socket, Transport, Opts) ->
 
 init(ListenerPid, Socket, Transport, _Opts = []) ->
   ok = ranch:accept_ack(ListenerPid),
-  io:format("protocol init"),
+  io:format("protocol init~n"),
+  {ok, Packet} = citp_msex:build_SInf(),
+  io:format("packet: ~w~n", [Packet]),
+  io:format("packet size: ~w~n", [iolist_size(Packet)]),
+  Transport:send(Socket, Packet),
   loop(Socket, Transport).
 
 loop(Socket, Transport) ->
-  io:format("protocol loop"),
-  case Transport:recv(Socket, 2, infinity) of
+  case Transport:recv(Socket, 0, infinity) of
     {ok, Data} ->
       %% Transport:send(Socket, Data),
       io:format("Got data: ~w~n", [Data]),
       loop(Socket, Transport);
-    _ ->
-      io:format("Got something other than data...."),
+    Other ->
+      io:format("Got something other than data: ~w~n", [Other]),
       ok = Transport:close(Socket)
   end.
