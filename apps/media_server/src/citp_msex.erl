@@ -62,24 +62,42 @@ build_SInf() ->
   {ok, [Header, ProductNameBin, VersionMajor, VersionMinor, LayerCount, DMXSourceBin]}.
 
 
-parse_packet(<<"CITP", VersionMajor, VersionMinor, RequestIndex:16/little,
-  MessageSize:32/little, MessagePartCount:16/little, MessagePart:16/little,
-  ContentType:32/little, Data/binary>>) ->
-  %io:format("Got CITP packet: ~p~n", [binary_to_list(<<ContentType:32/little>>)]),
-  parse_body(<<ContentType:32/little>>, Data);
-parse_packet(_Data) ->
-  {error, not_citp}.
+parse_header(<<"CITP", _VersionMajor, _VersionMinor, RequestIndex:16/little,
+  MessageSize:32/little, _MessagePartCount:16/little, _MessagePart:16/little,
+  ContentType:32/little, _Data/binary>>) ->
+  io:format("Got CITP packet: ~p~n", [binary_to_list(<<ContentType:32/little>>)]),
+  {ok, {binary_to_list(<<ContentType:32/little>>), RequestIndex, MessageSize}};
+
+parse_header(_Data) ->
+  {error, {not_citp}}.
 
 
-parse_body(<<"PINF">>, <<"PLoc", ListeningPort:16/little, Strings/binary>>) ->
+
+parse_body("PINF", <<"PLoc", ListeningPort:16/little, Strings/binary>>) ->
   StringList = binary_to_list(Strings),
   Type = lists:takewhile(fun(X) -> X /= 0 end, StringList),
   [_ | StringRest] = lists:dropwhile(fun(X) -> X /=0 end, StringList),
   Name = lists:takewhile(fun(X) -> X /= 0 end, StringRest),
   [_ | State0] = lists:dropwhile(fun(X) -> X /=0 end, StringRest),
   State = lists:filter(fun(X) -> X /= 0 end, State0),
-  {ok, ploc, ListeningPort, Type, Name, State};
-parse_body(ContentType, _Data) ->
-  io:format("Unknown CITP packet: ~p: ~w~n", [ContentType, _Data]),
-  {error, unknown_citp_packet, ContentType}.
+  {ok, {ploc, ListeningPort, Type, Name, State}};
+%
+% Client Information
+parse_body("MSEX", <<VersionMajor:8, VersionMinor:8, "CInf", Count:8, SupportedList/binary>>) ->
+  io:format("got CInf~n"),
+  {ok, {cinf, VersionMajor, VersionMinor, Count}};
+%
+% Get Element Library Information v1.0
+parse_body("MSEX", <<1:8, 0:8, "GELI", LibraryType:8, LibraryCount:8, LibraryNumbers/binary>>) ->
+  {ok, {geli_1_0, LibraryType, LibraryCount}};
+%
+% Get Element Library Information v1.1
+parse_body("MSEX", <<1:8, 1:8, "GELI", LibraryType:8, Level:8, Level1:8, Level2:8, Level3:8, 
+                         LibraryCount:8, LibraryNumbers/binary>>) ->
+  {ok, {geli_1_1, LibraryType, Level, Level1, Level2, Level3, LibraryCount}};
+%
+% Unmatched content handler
+parse_body(ContentType, Data) ->
+  io:format("Unknown CITP packet: ~p: ~w~n", [ContentType, Data]),
+  {error, {unknown_citp_packet, ContentType}}.
 
