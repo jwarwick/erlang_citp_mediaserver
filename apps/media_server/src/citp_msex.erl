@@ -50,7 +50,8 @@ sendPLoc(Socket, ListeningTCPPort, Name, State) ->
   gen_udp:send(Socket, ?CITP_MULTICAST_IP, ?CITP_PORT, [Header, Port, TypeBin, NameBin, StateBin]).
 
 build_SInf() ->
-  ProductNameBin = list_to_binary("ErlMedia" ++ [0]),
+  %% ProductNameBin = list_to_binary("ErlMedia" ++ [0]),
+  ProductNameBin = <<"ErlMedia"/utf16-little, 0:16>>,
   VersionMajor = <<1:8>>,
   VersionMinor = <<2:8>>,
   LayerCount = <<1:8>>,
