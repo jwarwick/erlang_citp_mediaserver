@@ -13,18 +13,27 @@ init(ListenerPid, Socket, Transport, _Opts = []) ->
   ok = ranch:accept_ack(ListenerPid),
   io:format("protocol init~n"),
   {ok, Packet} = citp_msex:build_SInf(),
-  io:format("packet: ~w~n", [Packet]),
-  io:format("packet size: ~w~n", [iolist_size(Packet)]),
+  %% io:format("packet: ~w~n", [Packet]),
+  %% io:format("packet size: ~w~n", [iolist_size(Packet)]),
   Transport:send(Socket, Packet),
   loop(Socket, Transport).
 
 loop(Socket, Transport) ->
   case Transport:recv(Socket, 0, infinity) of
     {ok, Data} ->
-      %% Transport:send(Socket, Data),
-      io:format("Got data: ~w~n", [Data]),
+      case citp_msex:parse_packet(Data) of
+        {ok, Result} ->
+          io:format("Got packet: ~w~n", [Result]);
+        {error, unknown_citp_packet, ContentType} ->
+          io:format("Unknown CITP packet: ~w~n", [ContentType]);
+        {error, not_citp} ->
+          io:format("Not a CITP packet~n");
+        Data ->
+          io:format("Unknown response: ~w~n", [Data])
+      end,
       loop(Socket, Transport);
     Other ->
       io:format("Got something other than data: ~w~n", [Other]),
       ok = Transport:close(Socket)
   end.
+

@@ -62,3 +62,24 @@ build_SInf() ->
   {ok, [Header, ProductNameBin, VersionMajor, VersionMinor, LayerCount, DMXSourceBin]}.
 
 
+parse_packet(<<"CITP", VersionMajor, VersionMinor, RequestIndex:16/little,
+  MessageSize:32/little, MessagePartCount:16/little, MessagePart:16/little,
+  ContentType:32/little, Data/binary>>) ->
+  %io:format("Got CITP packet: ~p~n", [binary_to_list(<<ContentType:32/little>>)]),
+  parse_body(<<ContentType:32/little>>, Data);
+parse_packet(_Data) ->
+  {error, not_citp}.
+
+
+parse_body(<<"PINF">>, <<"PLoc", ListeningPort:16/little, Strings/binary>>) ->
+  StringList = binary_to_list(Strings),
+  Type = lists:takewhile(fun(X) -> X /= 0 end, StringList),
+  [_ | StringRest] = lists:dropwhile(fun(X) -> X /=0 end, StringList),
+  Name = lists:takewhile(fun(X) -> X /= 0 end, StringRest),
+  [_ | State0] = lists:dropwhile(fun(X) -> X /=0 end, StringRest),
+  State = lists:filter(fun(X) -> X /= 0 end, State0),
+  {ok, ploc, ListeningPort, Type, Name, State};
+parse_body(ContentType, _Data) ->
+  io:format("Unknown CITP packet: ~p: ~w~n", [ContentType, _Data]),
+  {error, unknown_citp_packet, ContentType}.
+
