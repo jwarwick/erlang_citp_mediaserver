@@ -45,12 +45,11 @@ sendPLoc(Socket, ListeningTCPPort, Name, State) ->
   NameBin = list_to_binary(Name ++ [0]),
   StateBin = list_to_binary(State ++ [0]),
   MessageSize = 24 + 2 + byte_size(TypeBin) + byte_size(NameBin) + byte_size(StateBin),
-  Header = <<$C, $I, $T, $P, 1:8, 0:8, 0:16, MessageSize:32/little, 1:16/little, 0:16/little,
-             $P, $I, $N, $F, $P, $L, $o, $c>>,
+  Header = <<"CITP", 1:8, 0:8, 0:16, MessageSize:32/little, 1:16/little, 0:16/little,
+             "PINF", "PLoc">>,
   gen_udp:send(Socket, ?CITP_MULTICAST_IP, ?CITP_PORT, [Header, Port, TypeBin, NameBin, StateBin]).
 
 build_SInf() ->
-  %% ProductNameBin = list_to_binary("ErlMedia" ++ [0]),
   ProductNameBin = <<"ErlMedia"/utf16-little, 0:16>>,
   VersionMajor = <<1:8>>,
   VersionMinor = <<2:8>>,
@@ -58,8 +57,8 @@ build_SInf() ->
   %% DMXSourceBin = list_to_binary("BSRE1.31/0/1" ++ [0]),
   DMXSourceBin = list_to_binary("ArtNet/0/0/1" ++ [0]),
   MessageSize = 26 + byte_size(ProductNameBin) + 3 + byte_size(DMXSourceBin),
-  Header = <<$C, $I, $T, $P, 1:8, 0:8, 0:16, MessageSize:32/little, 1:16/little, 0:16/little,
-             $M, $S, $E, $X, 1:8, 0:8, $S, $I, $n, $f>>,
+  Header = <<"CITP", 1:8, 0:8, 0:16, MessageSize:32/little, 1:16/little, 0:16/little,
+             "MSEX", 1:8, 0:8, "SInf">>,
   {ok, [Header, ProductNameBin, VersionMajor, VersionMinor, LayerCount, DMXSourceBin]}.
 
 
