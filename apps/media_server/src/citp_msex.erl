@@ -1,10 +1,7 @@
 -module(citp_msex).
+-include("citp.hrl").
 % -export([]).
 -compile([export_all]).
-
--define(CITP_PORT, 4809).
--define(CITP_MULTICAST_IP, {224, 0, 0, 180}).
-
 
 listen() ->
   {ok, Socket} = gen_udp:open(0, [binary, {active, true}, {broadcast, true}, {reuseaddr, true},
@@ -29,6 +26,7 @@ sendPLoc(Socket, ListeningTCPPort, Name, State) ->
              "PINF", "PLoc">>,
   gen_udp:send(Socket, ?CITP_MULTICAST_IP, ?CITP_PORT, [Header, Port, TypeBin, NameBin, StateBin]).
 
+%% Sending 1.0 in Header as MSEX version... 
 build_SInf(ProductName, VersionMajor, VersionMinor) ->
   ProductNameBin = <<"ErlMediaServer"/utf16-little, 0:16>>,
   VersionMajorBin = <<VersionMajor:8>>,
@@ -40,6 +38,12 @@ build_SInf(ProductName, VersionMajor, VersionMinor) ->
   Header = <<"CITP", 1:8, 0:8, 0:16, MessageSize:32/little, 1:16/little, 0:16/little,
              "MSEX", 1:8, 0:8, "SInf">>,
   {ok, [Header, ProductNameBin, VersionMajorBin, VersionMinorBin, LayerCount, DMXSourceBin]}.
+
+build_Nack(MessageType) ->
+  MessageSize = ?CITP_HEADER_SIZE + 14,
+  Header = <<"CITP", 1:8, 0:8, 0:16, MessageSize:32/little, 1:16/little, 0:16/little,
+             "MSEX", 1:8, 0:8, "Nack">>,
+  {ok, [Header, MessageType]}.
 
 
 parse_header(<<"CITP", _VersionMajor, _VersionMinor, RequestIndex:16/little,

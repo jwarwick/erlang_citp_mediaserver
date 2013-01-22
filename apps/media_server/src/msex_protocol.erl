@@ -1,10 +1,11 @@
 -module(msex_protocol).
 -behaviour(ranch_protocol).
 
+-include("citp.hrl").
+
 -export([start_link/4]).
 -export([init/4]).
 
--define(CITP_HEADER_SIZE, 20).
 
 -define(MSEX_VERSION_MAJOR, 1).
 -define(MSEX_VERSION_MINOR, 1).
@@ -37,24 +38,16 @@ wait_for_header(Socket, Transport) ->
       ok = Transport:close(Socket)
   end.
 
-wait_for_body(Socket, Transport, {ContentType, RequestIndex, ?CITP_HEADER_SIZE}) ->
-  io:format("CITP Message Size == CITP Header Size~nYou must have a LSC Clarity console.~nLet me treat that like a GetElement packet...~n"),
-  %% the LSC Clarity console sends a GELI v1.0 message with the message size=20
-  %% lets try to parse that, which is super fragile
-  wait_for_body(Socket, Transport, {ContentType, RequestIndex, 28});
+%% the LSC Clarity console sends a GELI v1.0 message with the message size=citp_header_size,
+%% so MessageSize = 0, which will read whatever data is available, which might not be the whole packet...
 wait_for_body(Socket, Transport, {ContentType, RequestIndex, MessageSize}) ->
   %% io:format("wait for body: ~p, ~w, ~w~n", [ContentType, RequestIndex, MessageSize]),
   %% io:format("waiting for ~w bytes~n", [MessageSize - ?CITP_HEADER_SIZE]),
   case Transport:recv(Socket, MessageSize - ?CITP_HEADER_SIZE, infinity) of
     {ok, Data} ->
       case citp_msex:parse_body(ContentType, Data) of
-        {ok, {cinf, VersionMajor, VersionMinor, Count}} ->
-          io:format("Got CInf packet: ~w.~w, Count:~w~n", [VersionMajor, VersionMinor, Count]),
-          {ok, SInfPacket} = citp_msex:build_SInf(?SERVER_NAME, ?MSEX_VERSION_MAJOR, ?MSEX_VERSION_MINOR),
-          io:format("Sending SInf packet: ~w~n", [SInfPacket]),
-          ok = Transport:send(Socket, SInfPacket);
         {ok, Result} ->
-          io:format("Got CITP packet: ~w~n", [Result]);
+          handle_citp_packet(Socket, Transport, Result);
         {error, {unknown_citp_packet, ContentType}} ->
           io:format("Unknown CITP packet: ~p~n", [ContentType]);
         {error, {not_citp}} ->
@@ -66,4 +59,14 @@ wait_for_body(Socket, Transport, {ContentType, RequestIndex, MessageSize}) ->
     Other ->
       io:format("Got something other than data when reading packet body: ~w~n", [Other])
   end.
+
+handle_citp_packet(Socket, Transport, {cinf, VersionMajor, VersionMinor, Count}) ->
+  io:format("Got CInf packet: ~w.~w, Count:~w~n", [VersionMajor, VersionMinor, Count]),
+  {ok, SInfPacket} = citp_msex:build_SInf(?SERVER_NAME, ?MSEX_VERSION_MAJOR, ?MSEX_VERSION_MINOR),
+  io:format("Sending SInf packet: ~w~n", [SInfPacket]),
+  ok = Transport:send(Socket, SInfPacket);
+handle_citp_packet(Socket, Transport, {geli_1_0, LibraryType, LibraryCount}) ->
+  io:format("Got GELI v1.0 packet, Type: ~w, Count: ~w~n", [LibraryType, LibraryCount]);
+handle_citp_packet(_Socket, Transport, Result) ->
+  io:format("Not doing anything with CITP packet: ~w~n", [Result]).
 
