@@ -28,7 +28,7 @@ sendPLoc(Socket, ListeningTCPPort, Name, State) ->
 
 %% Sending 1.0 in Header as MSEX version... 
 build_SInf(ProductName, VersionMajor, VersionMinor) ->
-  ProductNameBin = <<"ErlMediaServer"/utf16-little, 0:16>>,
+  ProductNameBin = ucs2(ProductName),
   VersionMajorBin = <<VersionMajor:8>>,
   VersionMinorBin = <<VersionMinor:8>>,
   LayerCount = <<1:8>>,
@@ -46,7 +46,7 @@ build_Nack(MessageType) ->
   {ok, [Header, MessageType]}.
 
 build_ELIn() ->
-  LibraryCount = 1,
+  LibraryCount = 3,
   ElementList = [build_ELIn_element(Idx) || Idx <- lists:seq(0, LibraryCount-1)],
   ElementListBin = list_to_binary(lists:flatten(ElementList)),
   MessageSize = ?CITP_HEADER_SIZE + 6 + 1 + 1 + byte_size(ElementListBin),
@@ -59,10 +59,37 @@ build_ELIn_element(Idx) ->
   DmxRangeMin = Idx,
   DmxRangeMax = Idx,
   NameList = io_lib:fwrite("Folder ~B", [Idx+1]),
-  Name = <<"Folder"/utf16-little, 0:16>>,
-  ElementCount = <<1:8>>,
+  Name = ucs2(NameList),
+  ElementCount = 2,
   [Number, DmxRangeMin, DmxRangeMax, Name, ElementCount].
 
+build_MEIn(LibraryNumber) ->
+  ElementCount = LibraryNumber + 1,
+  MediaInfoList = [build_MEIn_element(Idx) || Idx <- lists:seq(0, ElementCount-1)],
+  MediaListBin = list_to_binary(lists:flatten(MediaInfoList)),
+  MessageSize = ?CITP_HEADER_SIZE + 6 + 1 + 1 + byte_size(MediaListBin),
+  Header = <<"CITP", 1:8, 0:8, 0:16, MessageSize:32/little, 1:16/little, 0:16/little,
+             "MSEX", 1:8, 0:8, "MEIn">>,
+  {ok, [Header, LibraryNumber, ElementCount, MediaListBin]}.
+
+build_MEIn_element(Idx) ->
+  Number = Idx,
+  DmxRangeMin = Idx,
+  DmxRangeMax = Idx,
+  NameList = io_lib:fwrite("Media ~B", [Idx+1]),
+  Name = ucs2(NameList),
+  TimestampBin = <<0:64>>,
+  MediaWithBin = <<1024:16>>,
+  MediaHeightBin = <<768:16>>,
+  MediaLengthBin = <<66:32>>,
+  MediaFPS = 30,
+  [Number, DmxRangeMin, DmxRangeMax, Name, TimestampBin, 
+   MediaWithBin, MediaHeightBin, MediaLengthBin, MediaFPS].
+  
+
+ucs2(String) ->
+  List16 = [[V, 0] || V <- String],
+  list_to_binary(List16 ++ [0, 0]).
 
 parse_header(<<"CITP", _VersionMajor, _VersionMinor, RequestIndex:16/little,
   MessageSize:32/little, _MessagePartCount:16/little, _MessagePart:16/little,
@@ -103,6 +130,23 @@ parse_body("MSEX", <<1:8, 0:8, "GELI", LibraryType:8, LibraryCount:8, LibraryNum
 parse_body("MSEX", <<1:8, 1:8, "GELI", LibraryType:8, Level:8, Level1:8, Level2:8, Level3:8, 
                          LibraryCount:8, LibraryNumbers/binary>>) ->
   {ok, {geli_1_1, LibraryType, Level, Level1, Level2, Level3, LibraryCount}};
+%
+% Get Element Information v1.0
+parse_body("MSEX", <<1:8, 0:8, "GEIn", LibraryType:8, LibraryNumber:8, 
+                     ElementCount:8, ElementNumbers/binary>>) ->
+  {ok, {gein_1_0, LibraryType, LibraryNumber, ElementCount, ElementNumbers}};
+%
+% Get Element Library Thumbnail v1.0
+parse_body("MSEX", <<1:8, 0:8, "GELT", ThumbnailFormat:32/little, ThumbnailWidth:16/little, ThumbnailHeight:16/little,
+                     ThumbnailFlags:8, LibraryType:8, LibraryCount:8, LibraryNumber/binary>>) ->
+  {ok, {gelt_1_0, ThumbnailFormat, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, 
+        LibraryType, LibraryCount, LibraryNumber}};
+%
+% Get Element Thumbnail v1.0
+parse_body("MSEX", <<1:8, 0:8, "GETh", ThumbnailFormat:32/little, ThumbnailWidth:16/little, ThumbnailHeight:16/little,
+                     ThumbnailFlags:8, LibraryType:8, LibraryNumber:8, ElementCount:8, ElementNumbers/binary>>) ->
+  {ok, {geth_1_0, ThumbnailFormat, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, 
+        LibraryType, LibraryNumber, ElementCount, ElementNumbers}};
 %
 % Unmatched content handler
 parse_body(ContentType, Data) ->

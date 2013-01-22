@@ -70,11 +70,33 @@ handle_citp_packet(Socket, Transport, {geli_1_0, LibraryType, 0}) ->
   send_all_library_elements(Socket, Transport);
 handle_citp_packet(Socket, Transport, {geli_1_0, LibraryType, LibraryCount}) ->
   io:format("Got GELI v1.0 packet, Type: ~w, Count: ~w~n", [LibraryType, LibraryCount]);
+handle_citp_packet(Socket, Transport, 
+                   {gein_1_0, LibraryType, LibraryNumber, 0, ElementNumbers}) ->
+  io:format("Got GEIn v1.0 packet, LibType:~w, LibNum:~w, All libraries~n",
+            [LibraryType, LibraryNumber]),
+  send_all_media_elements(Socket, Transport, LibraryNumber);
+handle_citp_packet(Socket, Transport, 
+                   {gein_1_0, LibraryType, LibraryNumber, ElementCount, ElementNumbers}) ->
+  io:format("Got GEIn v1.0 packet, LibType:~w, LibNum:~w, EltCount:~w, EltNumbers:~w~n",
+            [LibraryType, LibraryNumber, ElementCount, ElementNumbers]);
+handle_citp_packet(Socket, Transport,
+                   {gelt_1_0, ThumbnailFormat, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, 
+                    LibraryType, LibraryCount, LibraryNumber}) ->
+  io:format("Got GELT v1.0 packet, ThumbFormat:~w, ThumbW:~w, ThumbH:~w, ThumbFlag:~w, LibType:~w, LibCount:~w, LibNum:~w~n",
+            [ThumbnailFormat, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, LibraryType, LibraryCount, LibraryNumber]);
+handle_citp_packet(Socket, Transport,
+                   {geth_1_0, ThumbnailFormat, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, 
+                    LibraryType, LibraryNumber, ElementCount, ElementNumbers}) ->
+  io:format("Got GETh v1.0 packet, ThumbFormat:~w, ThumbW:~w, ThumbH:~w, ThumbFlag:~w, LibType:~w, LibNum:~w, EltCnt:~w, EltNums:~w~n",
+            [ThumbnailFormat, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, LibraryType, LibraryNumber, ElementCount, ElementNumbers]);
+
 handle_citp_packet(_Socket, Transport, Result) ->
   io:format("Not doing anything with CITP packet: ~w~n", [Result]).
 
 send_all_library_elements(Socket, Transport) ->
   {ok, ELInPacket} = citp_msex:build_ELIn(),
-  io:format("elin packet: ~w~n", [ELInPacket]),
   ok = Transport:send(Socket, ELInPacket).
   
+send_all_media_elements(Socket, Transport, LibraryNumber) ->
+  {ok, MEInPacket} = citp_msex:build_MEIn(LibraryNumber),
+  ok = Transport:send(Socket, MEInPacket).
