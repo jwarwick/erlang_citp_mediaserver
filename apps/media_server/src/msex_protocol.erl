@@ -19,7 +19,6 @@ init(ListenerPid, Socket, Transport, _Opts = []) ->
   wait_for_header(Socket, Transport).
 
 wait_for_header(Socket, Transport) ->
-  io:format("wait for header~n"),
   case Transport:recv(Socket, ?CITP_HEADER_SIZE, infinity) of
     {ok, Data} ->
       case citp_msex:parse_header(Data) of
@@ -38,14 +37,18 @@ wait_for_body(Socket, Transport, {_ContentType, _RequestIndex, ?CITP_HEADER_SIZE
   io:format("CITP Message Size == CITP Header Size~n"),
   wait_for_header(Socket, Transport);
 wait_for_body(Socket, Transport, {ContentType, RequestIndex, MessageSize}) ->
-  io:format("wait for body: ~p, ~w, ~w~n", [ContentType, RequestIndex, MessageSize]),
-  io:format("waiting for ~w bytes~n", [MessageSize - ?CITP_HEADER_SIZE]),
+  %% io:format("wait for body: ~p, ~w, ~w~n", [ContentType, RequestIndex, MessageSize]),
+  %% io:format("waiting for ~w bytes~n", [MessageSize - ?CITP_HEADER_SIZE]),
   case Transport:recv(Socket, MessageSize - ?CITP_HEADER_SIZE, infinity) of
     {ok, Data} ->
-      io:format("got body data~n"),
       case citp_msex:parse_body(ContentType, Data) of
+        {ok, {cinf, VersionMajor, VersionMinor, Count}} ->
+          io:format("Got CInf packet: ~w.~w, Count:~w~n", [VersionMajor, VersionMinor, Count]),
+          {ok, SInfPacket} = citp_msex:build_SInf(),
+          io:format("Sending SInf packet: ~w~n", [SInfPacket]),
+          ok = Transport:send(Socket, SInfPacket);
         {ok, Result} ->
-          io:format("Got body packet: ~w~n", [Result]);
+          io:format("Got CITP packet: ~w~n", [Result]);
         {error, {unknown_citp_packet, ContentType}} ->
           io:format("Unknown CITP packet: ~p~n", [ContentType]);
         {error, {not_citp}} ->

@@ -65,14 +65,15 @@ build_SInf() ->
 parse_header(<<"CITP", _VersionMajor, _VersionMinor, RequestIndex:16/little,
   MessageSize:32/little, _MessagePartCount:16/little, _MessagePart:16/little,
   ContentType:32/little, _Data/binary>>) ->
-  io:format("Got CITP packet: ~p~n", [binary_to_list(<<ContentType:32/little>>)]),
+  %% io:format("Got CITP packet: ~p~n", [binary_to_list(<<ContentType:32/little>>)]),
   {ok, {binary_to_list(<<ContentType:32/little>>), RequestIndex, MessageSize}};
 
 parse_header(_Data) ->
   {error, {not_citp}}.
 
 
-
+%
+% Peer Location
 parse_body("PINF", <<"PLoc", ListeningPort:16/little, Strings/binary>>) ->
   StringList = binary_to_list(Strings),
   Type = lists:takewhile(fun(X) -> X /= 0 end, StringList),
@@ -82,9 +83,14 @@ parse_body("PINF", <<"PLoc", ListeningPort:16/little, Strings/binary>>) ->
   State = lists:filter(fun(X) -> X /= 0 end, State0),
   {ok, {ploc, ListeningPort, Type, Name, State}};
 %
+% Peer Name
+parse_body("PINF", <<"PNam", Strings/binary>>) ->
+  StringList = binary_to_list(Strings),
+  Name = lists:takewhile(fun(X) -> X /= 0 end, StringList),
+  {ok, {pnam, Name}};
+%
 % Client Information
 parse_body("MSEX", <<VersionMajor:8, VersionMinor:8, "CInf", Count:8, SupportedList/binary>>) ->
-  io:format("got CInf~n"),
   {ok, {cinf, VersionMajor, VersionMinor, Count}};
 %
 % Get Element Library Information v1.0
