@@ -7,3 +7,5 @@
 
 -define(CITP_HEADER_SIZE, 20).
 
+% MSEX media element types
+-define(MEDIA_ELEMENT_TYPE, 1).

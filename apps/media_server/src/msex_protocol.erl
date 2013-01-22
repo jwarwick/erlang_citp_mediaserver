@@ -65,8 +65,16 @@ handle_citp_packet(Socket, Transport, {cinf, VersionMajor, VersionMinor, Count})
   {ok, SInfPacket} = citp_msex:build_SInf(?SERVER_NAME, ?MSEX_VERSION_MAJOR, ?MSEX_VERSION_MINOR),
   io:format("Sending SInf packet: ~w~n", [SInfPacket]),
   ok = Transport:send(Socket, SInfPacket);
+handle_citp_packet(Socket, Transport, {geli_1_0, LibraryType, 0}) ->
+  io:format("Got GELI v1.0 packet, Type: ~w, All libraries~n", [LibraryType]),
+  send_all_library_elements(Socket, Transport);
 handle_citp_packet(Socket, Transport, {geli_1_0, LibraryType, LibraryCount}) ->
   io:format("Got GELI v1.0 packet, Type: ~w, Count: ~w~n", [LibraryType, LibraryCount]);
 handle_citp_packet(_Socket, Transport, Result) ->
   io:format("Not doing anything with CITP packet: ~w~n", [Result]).
 
+send_all_library_elements(Socket, Transport) ->
+  {ok, ELInPacket} = citp_msex:build_ELIn(),
+  io:format("elin packet: ~w~n", [ELInPacket]),
+  ok = Transport:send(Socket, ELInPacket).
+  

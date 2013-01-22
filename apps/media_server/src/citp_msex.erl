@@ -40,10 +40,28 @@ build_SInf(ProductName, VersionMajor, VersionMinor) ->
   {ok, [Header, ProductNameBin, VersionMajorBin, VersionMinorBin, LayerCount, DMXSourceBin]}.
 
 build_Nack(MessageType) ->
-  MessageSize = ?CITP_HEADER_SIZE + 14,
+  MessageSize = ?CITP_HEADER_SIZE + 6 + 4,
   Header = <<"CITP", 1:8, 0:8, 0:16, MessageSize:32/little, 1:16/little, 0:16/little,
              "MSEX", 1:8, 0:8, "Nack">>,
   {ok, [Header, MessageType]}.
+
+build_ELIn() ->
+  LibraryCount = 1,
+  ElementList = [build_ELIn_element(Idx) || Idx <- lists:seq(0, LibraryCount-1)],
+  ElementListBin = list_to_binary(lists:flatten(ElementList)),
+  MessageSize = ?CITP_HEADER_SIZE + 6 + 1 + 1 + byte_size(ElementListBin),
+  Header = <<"CITP", 1:8, 0:8, 0:16, MessageSize:32/little, 1:16/little, 0:16/little,
+             "MSEX", 1:8, 0:8, "ELIn">>,
+  {ok, [Header, ?MEDIA_ELEMENT_TYPE, LibraryCount, ElementListBin]}.
+
+build_ELIn_element(Idx) ->
+  Number = Idx,
+  DmxRangeMin = Idx,
+  DmxRangeMax = Idx,
+  NameList = io_lib:fwrite("Folder ~B", [Idx+1]),
+  Name = <<"Folder"/utf16-little, 0:16>>,
+  ElementCount = <<1:8>>,
+  [Number, DmxRangeMin, DmxRangeMax, Name, ElementCount].
 
 
 parse_header(<<"CITP", _VersionMajor, _VersionMinor, RequestIndex:16/little,
