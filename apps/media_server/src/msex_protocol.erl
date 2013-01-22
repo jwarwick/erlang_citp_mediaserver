@@ -6,13 +6,17 @@
 
 -define(CITP_HEADER_SIZE, 20).
 
+-define(MSEX_VERSION_MAJOR, 1).
+-define(MSEX_VERSION_MINOR, 1).
+-define(SERVER_NAME, "ErlMediaServer").
+
 start_link(ListenerPid, Socket, Transport, Opts) ->
   Pid = spawn_link(?MODULE, init, [ListenerPid, Socket, Transport, Opts]),
   {ok, Pid}.
 
 init(ListenerPid, Socket, Transport, _Opts = []) ->
   ok = ranch:accept_ack(ListenerPid),
-  {ok, Packet} = citp_msex:build_SInf(),
+  {ok, Packet} = citp_msex:build_SInf(?SERVER_NAME, ?MSEX_VERSION_MAJOR, ?MSEX_VERSION_MINOR),
   %% io:format("packet: ~w~n", [Packet]),
   %% io:format("packet size: ~w~n", [iolist_size(Packet)]),
   Transport:send(Socket, Packet),
@@ -33,9 +37,11 @@ wait_for_header(Socket, Transport) ->
       ok = Transport:close(Socket)
   end.
 
-wait_for_body(Socket, Transport, {_ContentType, _RequestIndex, ?CITP_HEADER_SIZE}) ->
-  io:format("CITP Message Size == CITP Header Size~n"),
-  wait_for_header(Socket, Transport);
+wait_for_body(Socket, Transport, {ContentType, RequestIndex, ?CITP_HEADER_SIZE}) ->
+  io:format("CITP Message Size == CITP Header Size~nYou must have a LSC Clarity console.~nLet me treat that like a GetElement packet...~n"),
+  %% the LSC Clarity console sends a GELI v1.0 message with the message size=20
+  %% lets try to parse that, which is super fragile
+  wait_for_body(Socket, Transport, {ContentType, RequestIndex, 28});
 wait_for_body(Socket, Transport, {ContentType, RequestIndex, MessageSize}) ->
   %% io:format("wait for body: ~p, ~w, ~w~n", [ContentType, RequestIndex, MessageSize]),
   %% io:format("waiting for ~w bytes~n", [MessageSize - ?CITP_HEADER_SIZE]),
@@ -44,7 +50,7 @@ wait_for_body(Socket, Transport, {ContentType, RequestIndex, MessageSize}) ->
       case citp_msex:parse_body(ContentType, Data) of
         {ok, {cinf, VersionMajor, VersionMinor, Count}} ->
           io:format("Got CInf packet: ~w.~w, Count:~w~n", [VersionMajor, VersionMinor, Count]),
-          {ok, SInfPacket} = citp_msex:build_SInf(),
+          {ok, SInfPacket} = citp_msex:build_SInf(?SERVER_NAME, ?MSEX_VERSION_MAJOR, ?MSEX_VERSION_MINOR),
           io:format("Sending SInf packet: ~w~n", [SInfPacket]),
           ok = Transport:send(Socket, SInfPacket);
         {ok, Result} ->

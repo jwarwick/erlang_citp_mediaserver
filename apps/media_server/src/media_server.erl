@@ -56,9 +56,9 @@ handle_info(announce, State = {Socket, Port}) ->
   {noreply, State};
 
 handle_info({udp, _Socket, IP, _InPortNo, Packet}, State) ->
-  Result = citp_msex:parseHeader(Packet),
+  Result = citp_msex:parse_header(Packet),
   case Result of
-    {ploc, ListeningPort, Type, Name, CitpState} ->
+    {ok, {ploc, ListeningPort, Type, Name, CitpState}} ->
       io:format("PINF/PLoc: ~w:~w, ~p, ~p, ~p~n", [IP, ListeningPort, Type, Name, CitpState]);
     Result ->
       io:format("Don't know that packet: ~p, ~p~n", [Result, Packet])
