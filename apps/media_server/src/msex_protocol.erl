@@ -60,16 +60,16 @@ wait_for_body(Socket, Transport, {ContentType, RequestIndex, MessageSize}) ->
       io:format("Got something other than data when reading packet body: ~w~n", [Other])
   end.
 
-handle_citp_packet(Socket, Transport, {cinf, VersionMajor, VersionMinor, Count}) ->
-  io:format("Got CInf packet: ~w.~w, Count:~w~n", [VersionMajor, VersionMinor, Count]),
+handle_citp_packet(Socket, Transport, {cinf, VersionMajor, VersionMinor, Count, SupportedList}) ->
+  io:format("Got CInf packet: ~w.~w, Count:~w, Supported:~w~n", [VersionMajor, VersionMinor, Count, SupportedList]),
   {ok, SInfPacket} = citp_msex:build_SInf(?SERVER_NAME, ?MSEX_VERSION_MAJOR, ?MSEX_VERSION_MINOR),
-  io:format("Sending SInf packet: ~w~n", [SInfPacket]),
+  io:format("Sending SInf packet~n"),
   ok = Transport:send(Socket, SInfPacket);
-handle_citp_packet(Socket, Transport, {geli_1_0, LibraryType, 0}) ->
+handle_citp_packet(Socket, Transport, {geli_1_0, LibraryType, 0, LibraryNumbers}) ->
   io:format("Got GELI v1.0 packet, Type: ~w, All libraries~n", [LibraryType]),
   send_all_library_elements(Socket, Transport);
-handle_citp_packet(Socket, Transport, {geli_1_0, LibraryType, LibraryCount}) ->
-  io:format("Got GELI v1.0 packet, Type: ~w, Count: ~w~n", [LibraryType, LibraryCount]);
+handle_citp_packet(Socket, Transport, {geli_1_0, LibraryType, LibraryCount, LibraryNumbers}) ->
+  io:format("Got GELI v1.0 packet, Type: ~w, Count: ~w, Numbers: ~w~n", [LibraryType, LibraryCount, LibraryNumbers]);
 handle_citp_packet(Socket, Transport, 
                    {gein_1_0, LibraryType, LibraryNumber, 0, ElementNumbers}) ->
   io:format("Got GEIn v1.0 packet, LibType:~w, LibNum:~w, All libraries~n",
@@ -88,15 +88,34 @@ handle_citp_packet(Socket, Transport,
                    {geth_1_0, ThumbnailFormat, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, 
                     LibraryType, LibraryNumber, ElementCount, ElementNumbers}) ->
   io:format("Got GETh v1.0 packet, ThumbFormat:~p, ThumbW:~w, ThumbH:~w, ThumbFlag:~w, LibType:~w, LibNum:~w, EltCnt:~w, EltNums:~w~n",
-            [ThumbnailFormat, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, LibraryType, LibraryNumber, ElementCount, ElementNumbers]);
-
+            [ThumbnailFormat, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, LibraryType, LibraryNumber, ElementCount, ElementNumbers]),
+  send_thumbnails(Socket, Transport, ThumbnailFormat, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, 
+                  LibraryType, LibraryNumber, ElementCount, ElementNumbers);
 handle_citp_packet(_Socket, Transport, Result) ->
   io:format("Not doing anything with CITP packet: ~w~n", [Result]).
 
 send_all_library_elements(Socket, Transport) ->
+  io:format("Sending ELIn packet~n"),
   {ok, ELInPacket} = citp_msex:build_ELIn(),
   ok = Transport:send(Socket, ELInPacket).
   
 send_all_media_elements(Socket, Transport, LibraryNumber) ->
+  io:format("Sending MEIn packet~n"),
   {ok, MEInPacket} = citp_msex:build_MEIn(LibraryNumber),
   ok = Transport:send(Socket, MEInPacket).
+
+send_thumbnails(Socket, Transport, 
+                ThumbnailFormat, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, 
+                LibraryType, LibraryNumber, ElementCount, ElementNumbers) ->
+  [send_thumbnail(Socket, Transport, 
+                  ThumbnailFormat, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, 
+                  LibraryType, LibraryNumber, Element) ||  Element <- ElementNumbers].
+
+send_thumbnail(Socket, Transport, 
+               ThumbnailFormat, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, 
+               LibraryType, LibraryNumber, Element) ->
+  io:format("Sending EThn packet~n"),
+  {ok, EThnPacket} = citp_msex:build_EThn(ThumbnailFormat, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, 
+                                          LibraryType, LibraryNumber, Element),
+  ok = Transport:send(Socket, EThnPacket).
+

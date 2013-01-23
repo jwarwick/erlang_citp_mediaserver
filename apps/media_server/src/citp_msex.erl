@@ -87,6 +87,19 @@ build_MEIn_element(Idx) ->
    MediaWithBin, MediaHeightBin, MediaLengthBin, MediaFPS].
   
 
+build_EThn(ThumbnailFormat, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, 
+           LibraryType, LibraryNumber, Element) ->
+  {ok, Buffer} = file:read_file("/Users/jwarwick/Desktop/td.jpg"),
+  BufferSize = byte_size(Buffer),
+  WidthBin = <<ThumbnailWidth:16/little>>,
+  HeightBin = <<ThumbnailHeight:16/little>>,
+  SizeBin = <<BufferSize:16/little>>,
+  MessageSize = ?CITP_HEADER_SIZE + 6 + 13 + BufferSize,
+  Header = <<"CITP", 1:8, 0:8, 0:16, MessageSize:32/little, 1:16/little, 0:16/little,
+             "MSEX", 1:8, 0:8, "EThn">>,
+  {ok, [Header, LibraryType, LibraryNumber, Element, 
+        ThumbnailFormat, WidthBin, HeightBin, SizeBin, Buffer]}.
+
 ucs2(String) ->
   List16 = [[V, 0] || V <- String],
   list_to_binary(List16 ++ [0, 0]).
@@ -120,11 +133,13 @@ parse_body("PINF", <<"PNam", Strings/binary>>) ->
 %
 % Client Information
 parse_body("MSEX", <<VersionMajor:8, VersionMinor:8, "CInf", Count:8, SupportedList/binary>>) ->
-  {ok, {cinf, VersionMajor, VersionMinor, Count}};
+  Supported = binary_to_list(SupportedList),
+  {ok, {cinf, VersionMajor, VersionMinor, Count, Supported}};
 %
 % Get Element Library Information v1.0
 parse_body("MSEX", <<1:8, 0:8, "GELI", LibraryType:8, LibraryCount:8, LibraryNumbers/binary>>) ->
-  {ok, {geli_1_0, LibraryType, LibraryCount}};
+  LibraryList = binary_to_list(LibraryNumbers),
+  {ok, {geli_1_0, LibraryType, LibraryCount, LibraryList}};
 %
 % Get Element Library Information v1.1
 parse_body("MSEX", <<1:8, 1:8, "GELI", LibraryType:8, Level:8, Level1:8, Level2:8, Level3:8, 
@@ -134,21 +149,24 @@ parse_body("MSEX", <<1:8, 1:8, "GELI", LibraryType:8, Level:8, Level1:8, Level2:
 % Get Element Information v1.0
 parse_body("MSEX", <<1:8, 0:8, "GEIn", LibraryType:8, LibraryNumber:8, 
                      ElementCount:8, ElementNumbers/binary>>) ->
-  {ok, {gein_1_0, LibraryType, LibraryNumber, ElementCount, ElementNumbers}};
+  ElementList = binary_to_list(ElementNumbers),
+  {ok, {gein_1_0, LibraryType, LibraryNumber, ElementCount, ElementList}};
 %
 % Get Element Library Thumbnail v1.0
 parse_body("MSEX", <<1:8, 0:8, "GELT", ThumbnailFormat:32/little, ThumbnailWidth:16/little, ThumbnailHeight:16/little,
                      ThumbnailFlags:8, LibraryType:8, LibraryCount:8, LibraryNumber/binary>>) ->
   FormatString = binary_to_list(<<ThumbnailFormat:32/little>>),
+  LibraryList = binary_to_list(LibraryNumber),
   {ok, {gelt_1_0, FormatString, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, 
-        LibraryType, LibraryCount, LibraryNumber}};
+        LibraryType, LibraryCount, LibraryList}};
 %
 % Get Element Thumbnail v1.0
 parse_body("MSEX", <<1:8, 0:8, "GETh", ThumbnailFormat:32/little, ThumbnailWidth:16/little, ThumbnailHeight:16/little,
                      ThumbnailFlags:8, LibraryType:8, LibraryNumber:8, ElementCount:8, ElementNumbers/binary>>) ->
   FormatString = binary_to_list(<<ThumbnailFormat:32/little>>),
+  ElementList = binary_to_list(ElementNumbers),
   {ok, {geth_1_0, FormatString, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, 
-        LibraryType, LibraryNumber, ElementCount, ElementNumbers}};
+        LibraryType, LibraryNumber, ElementCount, ElementList}};
 %
 % Unmatched content handler
 parse_body(ContentType, Data) ->
