@@ -139,13 +139,15 @@ parse_body("MSEX", <<1:8, 0:8, "GEIn", LibraryType:8, LibraryNumber:8,
 % Get Element Library Thumbnail v1.0
 parse_body("MSEX", <<1:8, 0:8, "GELT", ThumbnailFormat:32/little, ThumbnailWidth:16/little, ThumbnailHeight:16/little,
                      ThumbnailFlags:8, LibraryType:8, LibraryCount:8, LibraryNumber/binary>>) ->
-  {ok, {gelt_1_0, ThumbnailFormat, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, 
+  FormatString = binary_to_list(<<ThumbnailFormat:32/little>>),
+  {ok, {gelt_1_0, FormatString, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, 
         LibraryType, LibraryCount, LibraryNumber}};
 %
 % Get Element Thumbnail v1.0
 parse_body("MSEX", <<1:8, 0:8, "GETh", ThumbnailFormat:32/little, ThumbnailWidth:16/little, ThumbnailHeight:16/little,
                      ThumbnailFlags:8, LibraryType:8, LibraryNumber:8, ElementCount:8, ElementNumbers/binary>>) ->
-  {ok, {geth_1_0, ThumbnailFormat, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, 
+  FormatString = binary_to_list(<<ThumbnailFormat:32/little>>),
+  {ok, {geth_1_0, FormatString, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, 
         LibraryType, LibraryNumber, ElementCount, ElementNumbers}};
 %
 % Unmatched content handler

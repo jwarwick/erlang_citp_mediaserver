@@ -82,12 +82,12 @@ handle_citp_packet(Socket, Transport,
 handle_citp_packet(Socket, Transport,
                    {gelt_1_0, ThumbnailFormat, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, 
                     LibraryType, LibraryCount, LibraryNumber}) ->
-  io:format("Got GELT v1.0 packet, ThumbFormat:~w, ThumbW:~w, ThumbH:~w, ThumbFlag:~w, LibType:~w, LibCount:~w, LibNum:~w~n",
+  io:format("Got GELT v1.0 packet, ThumbFormat:~p, ThumbW:~w, ThumbH:~w, ThumbFlag:~w, LibType:~w, LibCount:~w, LibNum:~w~n",
             [ThumbnailFormat, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, LibraryType, LibraryCount, LibraryNumber]);
 handle_citp_packet(Socket, Transport,
                    {geth_1_0, ThumbnailFormat, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, 
                     LibraryType, LibraryNumber, ElementCount, ElementNumbers}) ->
-  io:format("Got GETh v1.0 packet, ThumbFormat:~w, ThumbW:~w, ThumbH:~w, ThumbFlag:~w, LibType:~w, LibNum:~w, EltCnt:~w, EltNums:~w~n",
+  io:format("Got GETh v1.0 packet, ThumbFormat:~p, ThumbW:~w, ThumbH:~w, ThumbFlag:~w, LibType:~w, LibNum:~w, EltCnt:~w, EltNums:~w~n",
             [ThumbnailFormat, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, LibraryType, LibraryNumber, ElementCount, ElementNumbers]);
 
 handle_citp_packet(_Socket, Transport, Result) ->
