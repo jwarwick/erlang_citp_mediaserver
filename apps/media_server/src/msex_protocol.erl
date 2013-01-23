@@ -60,6 +60,12 @@ wait_for_body(Socket, Transport, {ContentType, RequestIndex, MessageSize}) ->
       io:format("Got something other than data when reading packet body: ~w~n", [Other])
   end.
 
+handle_citp_packet(_Socket, _Transport, {pnam, Name}) ->
+  io:format("Got PNam: ~p~n", [Name]);
+handle_citp_packet(_Socket, _Transport, {unam, UniverseIndex, UniverseName}) ->
+  io:format("Got UNam packet: ~p:~w~n", [UniverseName, UniverseIndex]);
+handle_citp_packet(_Socket, _Transport, {chbk, Blind, UniverseIndex, FirstChannel, ChannelCount, _Channels}) ->
+  io:format("Got ChBk: ~w:~w (Blind: ~w) (ChannelCount: ~w)~n", [UniverseIndex, FirstChannel, Blind, ChannelCount]);
 handle_citp_packet(Socket, Transport, {cinf, VersionMajor, VersionMinor, Count, SupportedList}) ->
   io:format("Got CInf packet: ~w.~w, Count:~w, Supported:~w~n", [VersionMajor, VersionMinor, Count, SupportedList]),
   {ok, SInfPacket} = citp_msex:build_SInf(?SERVER_NAME, ?MSEX_VERSION_MAJOR, ?MSEX_VERSION_MINOR),
@@ -91,7 +97,7 @@ handle_citp_packet(Socket, Transport,
             [ThumbnailFormat, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, LibraryType, LibraryNumber, ElementCount, ElementNumbers]),
   send_thumbnails(Socket, Transport, ThumbnailFormat, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, 
                   LibraryType, LibraryNumber, ElementCount, ElementNumbers);
-handle_citp_packet(_Socket, Transport, Result) ->
+handle_citp_packet(_Socket, _Transport, Result) ->
   io:format("Not doing anything with CITP packet: ~w~n", [Result]).
 
 send_all_library_elements(Socket, Transport) ->
@@ -106,7 +112,7 @@ send_all_media_elements(Socket, Transport, LibraryNumber) ->
 
 send_thumbnails(Socket, Transport, 
                 ThumbnailFormat, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, 
-                LibraryType, LibraryNumber, ElementCount, ElementNumbers) ->
+                LibraryType, LibraryNumber, _ElementCount, ElementNumbers) ->
   [send_thumbnail(Socket, Transport, 
                   ThumbnailFormat, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, 
                   LibraryType, LibraryNumber, Element) ||  Element <- ElementNumbers].

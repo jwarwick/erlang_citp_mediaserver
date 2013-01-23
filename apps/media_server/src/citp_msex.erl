@@ -131,6 +131,17 @@ parse_body("PINF", <<"PNam", Strings/binary>>) ->
   Name = lists:takewhile(fun(X) -> X /= 0 end, StringList),
   {ok, {pnam, Name}};
 %
+% Universe Name
+parse_body("SDMX", <<"UNam", UniverseIndex:8, UniverseNames/binary>>) ->
+  NameList = binary_to_list(UniverseNames),
+  Name = lists:takewhile(fun(X) -> X /= 0 end, NameList),
+  {ok, {unam, UniverseIndex, Name}};
+%
+% Channel Block Message
+parse_body("SDMX", <<"ChBk", Blind:8, UniverseIndex:8, 
+                     FirstChannel:16/little, ChannelCount:16/little, Channels/binary>>) ->
+  {ok, {chbk, Blind, UniverseIndex, FirstChannel, ChannelCount, Channels}};
+%
 % Client Information
 parse_body("MSEX", <<VersionMajor:8, VersionMinor:8, "CInf", Count:8, SupportedList/binary>>) ->
   Supported = binary_to_list(SupportedList),
