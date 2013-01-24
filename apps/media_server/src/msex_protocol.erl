@@ -42,7 +42,7 @@ wait_for_header(Socket, Transport) ->
       ok = Transport:close(Socket)
   end.
 
-%% the LSC Clarity console sends a GELI v1.0 message with the message size=citp_header_size,
+%% the LSC Clarity console sends messages with the message_size=citp_header_size,
 %% so MessageSize = 0, which will read whatever data is available, which might not be the whole packet...
 wait_for_body(Socket, Transport, {ContentType, RequestIndex, MessageSize}) ->
   %% io:format("wait for body: ~p, ~w, ~w~n", [ContentType, RequestIndex, MessageSize]),
