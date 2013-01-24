@@ -179,6 +179,16 @@ parse_body("MSEX", <<1:8, 0:8, "GETh", ThumbnailFormat:32/little, ThumbnailWidth
   {ok, {geth_1_0, FormatString, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, 
         LibraryType, LibraryNumber, ElementCount, ElementList}};
 %
+% Get Video Sources
+parse_body("MSEX", <<_VersionMajor:8, _VersionMinor:8, "GVSr">>) ->
+  {ok, {gvsr}};
+%
+% Request Stream Message
+parse_body("MSEX", <<_VersionMajor:8, _VersionMinor:8, "RqSt", SourceIdentifier:16/little, FrameFormat:32/little,
+                     FrameWidth:16/little, FrameHeight:16/little, FPS:8, Timeout:8>>) ->
+  FormatString = binary_to_list(<<FrameFormat:32/little>>),
+  {ok, {rqst, SourceIdentifier, FormatString, FrameWidth, FrameHeight, FPS, Timeout}};
+%
 % Unmatched content handler
 parse_body(ContentType, Data) ->
   io:format("Unknown CITP packet: ~p: ~w~n", [ContentType, Data]),

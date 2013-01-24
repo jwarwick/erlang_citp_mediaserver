@@ -97,6 +97,11 @@ handle_citp_packet(Socket, Transport,
             [ThumbnailFormat, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, LibraryType, LibraryNumber, ElementCount, ElementNumbers]),
   send_thumbnails(Socket, Transport, ThumbnailFormat, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, 
                   LibraryType, LibraryNumber, ElementCount, ElementNumbers);
+handle_citp_packet(Socket, Transport, {gvsr}) ->
+  io:format("Got GVSr packet~n"),
+  io:format("Sending Nack~n"),
+  {ok, Nack} = citp_msex:build_Nack("GVSr"),
+  ok = Transport:send(Socket, Nack);
 handle_citp_packet(_Socket, _Transport, Result) ->
   io:format("Not doing anything with CITP packet: ~w~n", [Result]).
 
