@@ -17,9 +17,13 @@ start_link(ListenerPid, Socket, Transport, Opts) ->
 
 init(ListenerPid, Socket, Transport, _Opts = []) ->
   ok = ranch:accept_ack(ListenerPid),
+  % send Peer Name on connect
+  io:format("Sending PNam~n"),
+  {ok, PNam} = citp_msex:build_PNam(?SERVER_NAME),
+  ok = Transport:send(Socket, PNam),
+  % send Server Info on connect
+  io:format("Sending SInf~n"),
   {ok, Packet} = citp_msex:build_SInf(?SERVER_NAME, ?MSEX_VERSION_MAJOR, ?MSEX_VERSION_MINOR),
-  %% io:format("packet: ~w~n", [Packet]),
-  %% io:format("packet size: ~w~n", [iolist_size(Packet)]),
   Transport:send(Socket, Packet),
   wait_for_header(Socket, Transport).
 

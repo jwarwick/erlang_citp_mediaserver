@@ -26,7 +26,14 @@ sendPLoc(Socket, ListeningTCPPort, Name, State) ->
              "PINF", "PLoc">>,
   gen_udp:send(Socket, ?CITP_MULTICAST_IP, ?CITP_PORT, [Header, Port, TypeBin, NameBin, StateBin]).
 
-%% Sending 1.0 in Header as MSEX version... 
+build_PNam(ProductName) ->
+  NameBin = list_to_binary(ProductName ++ [0]),
+  MessageSize = ?CITP_HEADER_SIZE + 4 + byte_size(NameBin),
+  Header = <<"CITP", 1:8, 0:8, 0:16, MessageSize:32/little, 1:16/little, 0:16/little,
+             "PINF", "PNam">>,
+  {ok, [Header, NameBin]}.
+
+%% XXX -Sending 1.0 in Header as MSEX version... 
 build_SInf(ProductName, VersionMajor, VersionMinor) ->
   ProductNameBin = ucs2(ProductName),
   VersionMajorBin = <<VersionMajor:8>>,
