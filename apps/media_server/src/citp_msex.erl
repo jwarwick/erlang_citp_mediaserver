@@ -52,46 +52,41 @@ build_Nack(MessageType) ->
              "MSEX", 1:8, 0:8, "Nack">>,
   {ok, [Header, MessageType]}.
 
-build_ELIn() ->
-  LibraryCount = 3,
-  ElementList = [build_ELIn_element(Idx) || Idx <- lists:seq(0, LibraryCount-1)],
+build_ELIn(Libs) ->
+  LibraryCount = length(Libs),
+  ElementList = [build_ELIn_element(L) || L <- Libs],
   ElementListBin = list_to_binary(lists:flatten(ElementList)),
   MessageSize = ?CITP_HEADER_SIZE + 6 + 1 + 1 + byte_size(ElementListBin),
   Header = <<"CITP", 1:8, 0:8, 0:16, MessageSize:32/little, 1:16/little, 0:16/little,
              "MSEX", 1:8, 0:8, "ELIn">>,
   {ok, [Header, ?MEDIA_ELEMENT_TYPE, LibraryCount, ElementListBin]}.
 
-build_ELIn_element(Idx) ->
-  Number = Idx,
-  DmxRangeMin = Idx,
-  DmxRangeMax = Idx,
-  NameList = io_lib:fwrite("Folder ~B", [Idx+1]),
+build_ELIn_element({LibraryNumber, NameList, ElementCount}) ->
+  Number = LibraryNumber,
+  DmxRangeMin = LibraryNumber,
+  DmxRangeMax = LibraryNumber,
   Name = ucs2(NameList),
-  ElementCount = 2,
   [Number, DmxRangeMin, DmxRangeMax, Name, ElementCount].
 
-build_MEIn(LibraryNumber) ->
-  ElementCount = LibraryNumber + 1,
-  MediaInfoList = [build_MEIn_element(Idx) || Idx <- lists:seq(0, ElementCount-1)],
+build_MEIn(LibraryNumber, Shows) ->
+  ElementCount = length(Shows),
+  MediaInfoList = [build_MEIn_element(E) || E <- Shows],
   MediaListBin = list_to_binary(lists:flatten(MediaInfoList)),
   MessageSize = ?CITP_HEADER_SIZE + 6 + 1 + 1 + byte_size(MediaListBin),
   Header = <<"CITP", 1:8, 0:8, 0:16, MessageSize:32/little, 1:16/little, 0:16/little,
              "MSEX", 1:8, 0:8, "MEIn">>,
   {ok, [Header, LibraryNumber, ElementCount, MediaListBin]}.
 
-build_MEIn_element(Idx) ->
-  Number = Idx,
-  DmxRangeMin = Idx,
-  DmxRangeMax = Idx,
-  NameList = io_lib:fwrite("Media ~B", [Idx+1]),
+build_MEIn_element({Number, NameList, Timestamp, Width, Height, Length, FPS}) ->
+  DmxRangeMin = Number,
+  DmxRangeMax = Number,
   Name = ucs2(NameList),
-  TimestampBin = <<0:64>>,
-  MediaWithBin = <<1024:16>>,
-  MediaHeightBin = <<768:16>>,
-  MediaLengthBin = <<66:32>>,
-  MediaFPS = 30,
+  TimestampBin = <<Timestamp:64>>,
+  MediaWithBin = <<Width:16>>,
+  MediaHeightBin = <<Height:16>>,
+  MediaLengthBin = <<Length:32>>,
   [Number, DmxRangeMin, DmxRangeMax, Name, TimestampBin, 
-   MediaWithBin, MediaHeightBin, MediaLengthBin, MediaFPS].
+   MediaWithBin, MediaHeightBin, MediaLengthBin, FPS].
   
 
 build_EThn(ThumbnailFormat, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, 

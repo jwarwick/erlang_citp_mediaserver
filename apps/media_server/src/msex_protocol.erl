@@ -111,12 +111,14 @@ handle_citp_packet(_Socket, _Transport, Result) ->
 
 send_all_library_elements(Socket, Transport) ->
   io:format("Sending ELIn packet~n"),
-  {ok, ELInPacket} = citp_msex:build_ELIn(),
+  {ok, Libs} = content:get_all_element_libraries(),
+  {ok, ELInPacket} = citp_msex:build_ELIn(Libs),
   ok = Transport:send(Socket, ELInPacket).
   
 send_all_media_elements(Socket, Transport, LibraryNumber) ->
   io:format("Sending MEIn packet~n"),
-  {ok, MEInPacket} = citp_msex:build_MEIn(LibraryNumber),
+  {ok, Shows} = content:get_all_elements(LibraryNumber),
+  {ok, MEInPacket} = citp_msex:build_MEIn(LibraryNumber, Shows),
   ok = Transport:send(Socket, MEInPacket).
 
 send_thumbnails(Socket, Transport, 
@@ -130,6 +132,7 @@ send_thumbnail(Socket, Transport,
                ThumbnailFormat, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, 
                LibraryType, LibraryNumber, Element) ->
   io:format("Sending EThn packet~n"),
+  {ok, ThumbData} = content:get_thumbnail(ThumbnailFormat, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, LibraryNumber, Element),
   {ok, EThnPacket} = citp_msex:build_EThn(ThumbnailFormat, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, 
                                           LibraryType, LibraryNumber, Element),
   ok = Transport:send(Socket, EThnPacket).
