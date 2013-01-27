@@ -28,7 +28,7 @@ init(ListenerPid, Socket, Transport, _Opts = []) ->
   wait_for_header(Socket, Transport).
 
 wait_for_header(Socket, Transport) ->
-  case Transport:recv(Socket, ?CITP_HEADER_SIZE, infinity) of
+  case Transport:recv(Socket, ?CITP_HEADER_SIZE, 250) of
     {ok, Data} ->
       case citp_msex:parse_header(Data) of
         {ok, Result = {ContentType, RequestIndex, MessageSize}} ->
@@ -36,6 +36,11 @@ wait_for_header(Socket, Transport) ->
         Result ->
           io:format("Unknown parse_header response: ~w~n", [Result])
       end,
+      wait_for_header(Socket, Transport);
+    {error, timeout} ->
+      {ok, Packet} = citp_msex:build_LSta(),
+      io:format("Sending LSta msg~n"),
+      ok = Transport:send(Socket, Packet),
       wait_for_header(Socket, Transport);
     Other ->
       io:format("Got something other than data when reading header: ~w~n", [Other]),

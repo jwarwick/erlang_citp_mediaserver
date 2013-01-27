@@ -46,6 +46,28 @@ build_SInf(ProductName, VersionMajor, VersionMinor) ->
              "MSEX", 1:8, 0:8, "SInf">>,
   {ok, [Header, ProductNameBin, VersionMajorBin, VersionMinorBin, LayerCount, DMXSourceBin]}.
 
+build_LSta() ->
+  LayerCount = 1,
+  LayerList = [build_LSta_element(I) || I <- lists:seq(1, 1)],
+  LayerListBin = list_to_binary(lists:flatten(LayerList)),
+  MessageSize = ?CITP_HEADER_SIZE + 6 + 1 + byte_size(LayerListBin),
+  Header = <<"CITP", 1:8, 0:8, 0:16, MessageSize:32/little, 1:16/little, 0:16/little,
+             "MSEX", 1:8, 0:8, "LSta">>,
+  {ok, [Header, LayerCount, LayerListBin]}.
+
+build_LSta_element(Idx) ->
+  LayerNumber = 0, 
+  PhysicalOutput = 0,
+  MediaLibraryNumber = 0,
+  MediaNumber = 0,
+  MediaName = ucs2("Movie 1"),
+  MediaPosition = <<1:32/little>>,
+  MediaLength = <<30:32/little>>,
+  MediaFPS = 30,
+  Flags = <<16#0001:32/little>>,
+  [LayerNumber, PhysicalOutput, MediaLibraryNumber, MediaNumber, MediaName,
+   MediaPosition, MediaLength, MediaFPS, Flags].
+
 build_Nack(MessageType) ->
   MessageSize = ?CITP_HEADER_SIZE + 6 + 4,
   Header = <<"CITP", 1:8, 0:8, 0:16, MessageSize:32/little, 1:16/little, 0:16/little,
