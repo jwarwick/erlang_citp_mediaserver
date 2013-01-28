@@ -1,6 +1,9 @@
 -module(content).
 -compile([export_all]).
 
+server_name() ->
+  "Erl MediaServer".
+
 % return the list of known content
 content_list() ->
   % [{LibraryNumber, FolderName, [ShowList]}, ...]

@@ -9,7 +9,6 @@
 
 -define(MSEX_VERSION_MAJOR, 1).
 -define(MSEX_VERSION_MINOR, 1).
--define(SERVER_NAME, "ErlMediaServer").
 
 start_link(ListenerPid, Socket, Transport, Opts) ->
   Pid = spawn_link(?MODULE, init, [ListenerPid, Socket, Transport, Opts]),
@@ -19,11 +18,11 @@ init(ListenerPid, Socket, Transport, _Opts = []) ->
   ok = ranch:accept_ack(ListenerPid),
   % send Peer Name on connect
   io:format("Sending PNam~n"),
-  {ok, PNam} = citp_msex:build_PNam(?SERVER_NAME),
+  {ok, PNam} = citp_msex:build_PNam(content:server_name()),
   ok = Transport:send(Socket, PNam),
   % send Server Info on connect
   io:format("Sending SInf~n"),
-  {ok, Packet} = citp_msex:build_SInf(?SERVER_NAME, ?MSEX_VERSION_MAJOR, ?MSEX_VERSION_MINOR),
+  {ok, Packet} = citp_msex:build_SInf(content:server_name(), ?MSEX_VERSION_MAJOR, ?MSEX_VERSION_MINOR),
   Transport:send(Socket, Packet),
   wait_for_header(Socket, Transport).
 
@@ -77,7 +76,7 @@ handle_citp_packet(_Socket, _Transport, {chbk, Blind, UniverseIndex, FirstChanne
   io:format("Got ChBk: UniverseIndex: ~w, FirstChannel: ~w, (Blind: ~w) (ChannelCount: ~w)~n", [UniverseIndex, FirstChannel, Blind, ChannelCount]);
 handle_citp_packet(Socket, Transport, {cinf, VersionMajor, VersionMinor, Count, SupportedList}) ->
   io:format("Got CInf packet: ~w.~w, Count:~w, Supported:~w~n", [VersionMajor, VersionMinor, Count, SupportedList]),
-  {ok, SInfPacket} = citp_msex:build_SInf(?SERVER_NAME, ?MSEX_VERSION_MAJOR, ?MSEX_VERSION_MINOR),
+  {ok, SInfPacket} = citp_msex:build_SInf(content:server_name(), ?MSEX_VERSION_MAJOR, ?MSEX_VERSION_MINOR),
   io:format("Sending SInf packet~n"),
   ok = Transport:send(Socket, SInfPacket);
 handle_citp_packet(Socket, Transport, {geli_1_0, LibraryType, 0, LibraryNumbers}) ->
