@@ -36,19 +36,24 @@ build_PNam(ProductName) ->
 %% XXX -Sending 1.0 in Header as MSEX version... 
 build_SInf(ProductName, VersionMajor, VersionMinor) ->
   ProductNameBin = ucs2(ProductName),
-  VersionMajorBin = <<VersionMajor:8>>,
-  VersionMinorBin = <<VersionMinor:8>>,
-  LayerCount = <<1:8>>,
+  LayerCount = 8,
   %% DMXSourceBin = list_to_binary("BSRE1.31/0/1" ++ [0]),
-  DMXSourceBin = list_to_binary("ArtNet/0/0/1" ++ [0]),
+  DMXSourceBin = list_to_binary("ArtNet/0/0/4" ++ [0]
+                               ++ "ArtNet/0/0/24" ++ [0]
+                               ++ "ArtNet/0/0/44" ++ [0]
+                               ++ "ArtNet/0/0/64" ++ [0]
+                               ++ "ArtNet/0/0/84" ++ [0]
+                               ++ "ArtNet/0/0/104" ++ [0]
+                               ++ "ArtNet/0/0/124" ++ [0]
+                               ++ "ArtNet/0/0/144" ++ [0]),
   MessageSize = 26 + byte_size(ProductNameBin) + 3 + byte_size(DMXSourceBin),
   Header = <<"CITP", 1:8, 0:8, 0:16, MessageSize:32/little, 1:16/little, 0:16/little,
              "MSEX", 1:8, 0:8, "SInf">>,
-  {ok, [Header, ProductNameBin, VersionMajorBin, VersionMinorBin, LayerCount, DMXSourceBin]}.
+  {ok, [Header, ProductNameBin, VersionMajor, VersionMinor, LayerCount, DMXSourceBin]}.
 
 build_LSta() ->
-  LayerCount = 1,
-  LayerList = [build_LSta_element(I) || I <- lists:seq(1, 1)],
+  LayerCount = 8,
+  LayerList = [build_LSta_element(I) || I <- lists:seq(1, LayerCount+1)],
   LayerListBin = list_to_binary(lists:flatten(LayerList)),
   MessageSize = ?CITP_HEADER_SIZE + 6 + 1 + byte_size(LayerListBin),
   Header = <<"CITP", 1:8, 0:8, 0:16, MessageSize:32/little, 1:16/little, 0:16/little,
@@ -56,10 +61,10 @@ build_LSta() ->
   {ok, [Header, LayerCount, LayerListBin]}.
 
 build_LSta_element(Idx) ->
-  LayerNumber = 0, 
+  LayerNumber = Idx - 1, 
   PhysicalOutput = 0,
   MediaLibraryNumber = 0,
-  MediaNumber = 0,
+  MediaNumber = 1,
   MediaName = ucs2("Movie 1"),
   MediaPosition = <<1:32/little>>,
   MediaLength = <<30:32/little>>,
