@@ -38,7 +38,7 @@ wait_for_header(Socket, Transport) ->
       wait_for_header(Socket, Transport);
     {error, timeout} ->
       {ok, Packet} = citp_msex:build_LSta(),
-      io:format("Sending LSta msg~n"),
+      %% io:format("Sending LSta msg~n"),
       ok = Transport:send(Socket, Packet),
       wait_for_header(Socket, Transport);
     Other ->
@@ -137,7 +137,7 @@ send_thumbnail(Socket, Transport,
                LibraryType, LibraryNumber, Element) ->
   io:format("Sending EThn packet~n"),
   {ok, ThumbData} = content:get_thumbnail(ThumbnailFormat, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, LibraryNumber, Element),
-  {ok, EThnPacket} = citp_msex:build_EThn(ThumbnailFormat, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, 
+  {ok, EThnPacket} = citp_msex:build_EThn(ThumbData, ThumbnailFormat, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, 
                                           LibraryType, LibraryNumber, Element),
   ok = Transport:send(Socket, EThnPacket).
 

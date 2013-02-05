@@ -116,10 +116,10 @@ build_MEIn_element({Number, NameList, Timestamp, Width, Height, Length, FPS}) ->
    MediaWithBin, MediaHeightBin, MediaLengthBin, FPS].
   
 
-build_EThn(ThumbnailFormat, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, 
+build_EThn(ThumbData, ThumbnailFormat, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, 
            LibraryType, LibraryNumber, Element) ->
-  {ok, Buffer} = file:read_file("/Users/jwarwick/Desktop/td.jpg"),
-  BufferSize = byte_size(Buffer),
+  %% {ok, Buffer} = file:read_file("/Users/jwarwick/Desktop/td.jpg"),
+  BufferSize = byte_size(ThumbData),
   WidthBin = <<ThumbnailWidth:16/little>>,
   HeightBin = <<ThumbnailHeight:16/little>>,
   SizeBin = <<BufferSize:16/little>>,
@@ -127,7 +127,7 @@ build_EThn(ThumbnailFormat, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags,
   Header = <<"CITP", 1:8, 0:8, 0:16, MessageSize:32/little, 1:16/little, 0:16/little,
              "MSEX", 1:8, 0:8, "EThn">>,
   {ok, [Header, LibraryType, LibraryNumber, Element, 
-        ThumbnailFormat, WidthBin, HeightBin, SizeBin, Buffer]}.
+        ThumbnailFormat, WidthBin, HeightBin, SizeBin, ThumbData]}.
 
 ucs2(String) ->
   List16 = [[V, 0] || V <- String],

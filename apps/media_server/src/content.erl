@@ -1,6 +1,8 @@
 -module(content).
 -compile([export_all]).
 
+-define(THUMBNAIL_DIRECTORY, "/Users/jwarwick/Desktop/thumbnails").
+
 server_name() ->
   "Erl MediaServer".
 
@@ -27,12 +29,13 @@ get_all_element_libraries() ->
 get_element_library({LibraryNumber, Name, ShowList}) ->
   {LibraryNumber, Name, length(ShowList)}.
                      
-
 get_all_elements(LibraryNumber) ->
   Content = content_list(),
   {_LibNumber, _LibName, ShowList} = lists:nth(LibraryNumber + 1, Content),
   {ok, ShowList}.
 
-%% XXX - implement
-get_thumbnail(ThumbFormat, ThumbnailWidth, ThumbnailHeight, ThumbnailFlags, LibraryNumber, Element) ->
-  {ok, []}.
+get_thumbnail(Format, Width, Height, Flags, LibraryNumber, Element) ->
+  Filename = string:to_lower(lists:flatten(io_lib:format("td_~B_~B.~s", [Width, Height, Format]))),
+  Path = filename:join([?THUMBNAIL_DIRECTORY, Filename]),
+  {ok, Buffer} = file:read_file(Path),
+  {ok, Buffer}.
